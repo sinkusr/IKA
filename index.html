@@ -23,38 +23,20 @@
   <link rel="stylesheet" href="style.css">
   
   <script>
+    // Force unregister Service Worker to prevent persistent caching issues (v3.6+)
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => {
-            console.log('ServiceWorker registered', reg);
-            
-            // Check for updates on load
-            reg.addEventListener('updatefound', () => {
-              const installingWorker = reg.installing;
-              if (installingWorker) {
-                installingWorker.addEventListener('statechange', () => {
-                  if (installingWorker.state === 'installed') {
-                    if (navigator.serviceWorker.controller) {
-                      // New content is available; force page reload to apply changes
-                      console.log('New content available, reloading...');
-                      window.location.reload();
-                    }
-                  }
-                });
-              }
-            });
-          })
-          .catch(err => console.error('ServiceWorker registration failed', err));
-      });
-      
-      // Handle active service worker changes and reload
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister().then(success => {
+            if (success) console.log('Successfully unregistered service worker');
+          });
         }
+      });
+    }
+    // Force delete cache storages
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        for (let name of names) caches.delete(name);
       });
     }
   </script>
@@ -65,7 +47,7 @@
     <div class="header-logo">
       <i class="fa-solid fa-cloud-moon neon-icon"></i>
       <h1>IkaMetal <span class="accent-text">Log</span></h1>
-      <span class="version-badge">v3.5</span>
+      <span class="version-badge">v3.6</span>
     </div>
     <div class="header-actions">
       <button id="btn-export" title="CSVエクスポート" class="icon-btn"><i class="fa-solid fa-file-csv"></i></button>

@@ -377,7 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Quick Tags Implementation ---
   document.querySelectorAll('.tag-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault(); // Prevent any form submission or unexpected button behaviors
       const tagText = btn.getAttribute('data-tag');
       const curMemo = fieldMemo.value.trim();
       
@@ -428,6 +429,17 @@ document.addEventListener('DOMContentLoaded', () => {
     fieldRigSutte.value = log.rigSutte || '';
     fieldRigDropper.value = log.rigDropper || '';
     fieldMemo.value = log.memo || '';
+
+    // Load photo preview if it exists
+    if (log.photo) {
+      currentPhotoDataUrl = log.photo;
+      photoPreview.src = log.photo;
+      photoPreviewContainer.style.display = 'block';
+    } else {
+      currentPhotoDataUrl = '';
+      photoPreview.src = '';
+      photoPreviewContainer.style.display = 'none';
+    }
 
     document.getElementById('btn-form-submit').textContent = '記録を更新';
     switchTab('tab-form');
