@@ -65,7 +65,7 @@
     <div class="header-logo">
       <i class="fa-solid fa-cloud-moon neon-icon"></i>
       <h1>IkaMetal <span class="accent-text">Log</span></h1>
-      <span class="version-badge">v3.4</span>
+      <span class="version-badge">v3.5</span>
     </div>
     <div class="header-actions">
       <button id="btn-export" title="CSVエクスポート" class="icon-btn"><i class="fa-solid fa-file-csv"></i></button>
@@ -269,8 +269,35 @@
           </div>
 
           <div class="form-group">
+            <label>アタリカラー / 仕掛け クイック追加</label>
+            <div class="color-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+              <button type="button" class="tag-btn" data-tag="赤緑">🔴🟢 赤緑</button>
+              <button type="button" class="tag-btn" data-tag="赤黄">🔴🟡 赤黄</button>
+              <button type="button" class="tag-btn" data-tag="青黄">🔵🟡 青黄</button>
+              <button type="button" class="tag-btn" data-tag="ピンク">🌸 ピンク</button>
+              <button type="button" class="tag-btn" data-tag="紫">🟣 紫/パープル</button>
+              <button type="button" class="tag-btn" data-tag="夜光グリーン">🟢 夜光グリーン</button>
+              <button type="button" class="tag-btn" data-tag="イカメタル仕掛け">⚓ イカメタル</button>
+              <button type="button" class="tag-btn" data-tag="オモリグ仕掛け">⚖️ オモリグ</button>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label for="field-memo">メモ・気づいたこと</label>
             <textarea id="field-memo" rows="3" placeholder="潮の速さ、アタリカラー、誘いパターンなど..."></textarea>
+          </div>
+          
+          <div class="form-group" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+            <label>写真の追加</label>
+            <div class="photo-upload-zone" style="display: flex; flex-direction: column; align-items: center; gap: 10px; border: 2px dashed var(--border-color); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; position: relative;">
+              <i class="fa-solid fa-camera" style="font-size: 2rem; color: var(--text-muted);"></i>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">タップしてカメラ起動・写真を選択</span>
+              <input type="file" id="field-photo" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+            </div>
+            <div id="photo-preview-container" style="display: none; margin-top: 12px; position: relative; border-radius: 12px; overflow: hidden; max-height: 200px;">
+              <img id="photo-preview" src="" alt="プレビュー" style="width: 100%; height: auto; object-fit: cover;">
+              <button type="button" id="btn-remove-photo" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 0.9rem; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
           </div>
         </div>
 

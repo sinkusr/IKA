@@ -28,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
             range: log.range || '',
             rigSutte: log.rigSutte || '',
             rigDropper: log.rigDropper || '',
-            memo: log.memo || ''
+            memo: log.memo || '',
+            photo: log.photo || '' // Add photo data url support
           }));
           fishingLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
           return;
@@ -325,6 +326,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // --- Image Base64 Upload & Preview Logic ---
+  const fieldPhoto = document.getElementById('field-photo');
+  const photoPreviewContainer = document.getElementById('photo-preview-container');
+  const photoPreview = document.getElementById('photo-preview');
+  const btnRemovePhoto = document.getElementById('btn-remove-photo');
+  let currentPhotoDataUrl = '';
+
+  fieldPhoto.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 600;
+        let w = img.width;
+        let h = img.height;
+        
+        if (w > h && w > maxDim) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else if (h > maxDim) {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+        
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        
+        currentPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        photoPreview.src = currentPhotoDataUrl;
+        photoPreviewContainer.style.display = 'block';
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  btnRemovePhoto.addEventListener('click', () => {
+    currentPhotoDataUrl = '';
+    fieldPhoto.value = '';
+    photoPreview.src = '';
+    photoPreviewContainer.style.display = 'none';
+  });
+
+  // --- Quick Tags Implementation ---
+  document.querySelectorAll('.tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tagText = btn.getAttribute('data-tag');
+      const curMemo = fieldMemo.value.trim();
+      
+      if (curMemo === '') {
+        fieldMemo.value = `【ヒット仕掛け・アタリ】${tagText}`;
+      } else if (curMemo.includes('【ヒット仕掛け・アタリ】')) {
+        fieldMemo.value = curMemo + `、${tagText}`;
+      } else {
+        fieldMemo.value = curMemo + ` / ${tagText}`;
+      }
+      triggerHapticFeedback();
+    });
+  });
+
   // --- Form Reset / Edit Mode ---
   const resetForm = () => {
     editIdField.value = '';
@@ -333,10 +400,12 @@ document.addEventListener('DOMContentLoaded', () => {
     countSurume.value = 0;
     countYari.value = 0;
     countAori.value = 0;
+    currentPhotoDataUrl = '';
+    photoPreview.src = '';
+    photoPreviewContainer.style.display = 'none';
     document.getElementById('btn-form-submit').textContent = '記録を保存';
     document.querySelector('input[name="field-weather"][value="晴れ"]').checked = true;
     fieldTide.value = '中潮';
-    statusFetchWeather.textContent = '';
   };
 
   const populateFormForEdit = (logId) => {
@@ -431,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
           ` : ''}
+          ${log.photo ? `<img class="history-card-photo" src="${log.photo}" alt="釣行写真">` : ''}
           ${log.memo ? `<div class="history-memo">${log.memo}</div>` : ''}
         </div>
         <div class="history-card-actions">
@@ -486,7 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
       range: fieldRange.value,
       rigSutte: fieldRigSutte.value,
       rigDropper: fieldRigDropper.value,
-      memo: fieldMemo.value
+      memo: fieldMemo.value,
+      photo: currentPhotoDataUrl // Save image
     };
 
     if (editId) {

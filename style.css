@@ -124,6 +124,44 @@ body {
   background: rgba(255, 255, 255, 0.15);
   transform: scale(0.95);
 }
+/* Tag Button Styling */
+.tag-btn {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag-btn:active {
+  background-color: var(--primary);
+  color: var(--text-dark);
+  transform: scale(0.95);
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* Photo upload preview styles */
+.photo-upload-zone {
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.photo-upload-zone:active {
+  border-color: var(--primary);
+  background-color: rgba(0, 210, 255, 0.03);
+}
+
+.history-card-photo {
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+}
 
 /* Tab contents */
 .app-main {
