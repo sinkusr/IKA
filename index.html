@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>イカメタル釣果ログ - IkaMetal Log</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PWA & iPhone Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="イカメタルログ">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('ServiceWorker registered', reg))
+          .catch(err => console.error('ServiceWorker registration failed', err));
+      });
+    }
+  </script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-logo">
+      <i class="fa-solid fa-cloud-moon neon-icon"></i>
+      <h1>IkaMetal <span class="accent-text">Log</span></h1>
+    </div>
+    <div class="header-actions">
+      <button id="btn-export" title="CSVエクスポート" class="icon-btn"><i class="fa-solid fa-file-csv"></i></button>
+      <button id="btn-import-trigger" title="CSVインポート" class="icon-btn"><i class="fa-solid fa-file-import"></i></button>
+      <input type="file" id="csv-import" accept=".csv" style="display: none;">
+    </div>
+  </header>
+
+  <!-- Main Content Areas (Tabs) -->
+  <main class="app-main">
+    <!-- Tab 1: Dashboard -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="stats-hero">
+        <div class="hero-label">総釣果数 (ALL TIME)</div>
+        <div class="hero-count" id="stat-total-squids">0 <span class="unit">杯</span></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon squid-kensaki"><i class="fa-solid fa-circle"></i></div>
+          <div class="stat-info">
+            <span class="label">マイカ (ケンサキ)</span>
+            <span class="value" id="stat-total-maika">0 杯</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon squid-surume"><i class="fa-solid fa-circle"></i></div>
+          <div class="stat-info">
+            <span class="label">スルメイカ (ヤリ含む)</span>
+            <span class="value" id="stat-total-surume">0 杯</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-pb"><i class="fa-solid fa-trophy"></i></div>
+          <div class="stat-info">
+            <span class="label">自己ベスト (1回)</span>
+            <span class="value" id="stat-personal-best">0 杯</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-avg"><i class="fa-solid fa-calculator"></i></div>
+          <div class="stat-info">
+            <span class="label">平均釣果 (1釣行)</span>
+            <span class="value" id="stat-average-squids">0.0 杯</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="section-card">
+        <h2><i class="fa-solid fa-chart-line header-icon"></i>釣果の推移</h2>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2><i class="fa-solid fa-chart-pie header-icon"></i>イカの種類比率</h2>
+        <div class="chart-container">
+          <canvas id="ratioChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Log Form -->
+    <section id="tab-form" class="tab-content">
+      <form id="fishing-form" novalidate>
+        <input type="hidden" id="edit-id" value="">
+        
+        <div class="form-section">
+          <h2><i class="fa-regular fa-calendar-days header-icon"></i>基本情報</h2>
+          
+          <div class="form-group-row">
+            <div class="form-group">
+              <label for="field-date">日付</label>
+              <input type="date" id="field-date" required>
+            </div>
+            <div class="form-group">
+              <label for="field-area">釣行エリア / 船名</label>
+              <input type="text" id="field-area" placeholder="例: 敦賀・小浜" required>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <button type="button" id="btn-fetch-weather" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem;"><i class="fa-solid fa-cloud-sun"></i> 日付から天気・潮汐を自動取得</button>
+            <span id="weather-fetch-status" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 6px;"></span>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2><i class="fa-solid fa-calculator header-icon"></i>釣果カウンター</h2>
+          
+          <div class="counter-container">
+            <!-- Counter 1 -->
+            <div class="counter-card maika">
+              <div class="counter-header">
+                <h3>マイカ / ケンサキイカ</h3>
+                <span class="sub-label">主に中層〜イカメタルの本命</span>
+              </div>
+              <div class="counter-controls">
+                <button type="button" class="btn-counter-minus" data-target="count-maika"><i class="fa-solid fa-minus"></i></button>
+                <input type="number" id="count-maika" value="0" min="0" readonly>
+                <button type="button" class="btn-counter-plus" data-target="count-maika"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+
+            <!-- Counter 2 -->
+            <div class="counter-card surume">
+              <div class="counter-header">
+                <h3>スルメイカ / ヤリイカ / その他</h3>
+                <span class="sub-label">力強い引き・ボトム付近など</span>
+              </div>
+              <div class="counter-controls">
+                <button type="button" class="btn-counter-minus" data-target="count-surume"><i class="fa-solid fa-minus"></i></button>
+                <input type="number" id="count-surume" value="0" min="0" readonly>
+                <button type="button" class="btn-counter-plus" data-target="count-surume"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2><i class="fa-solid fa-circle-info header-icon"></i>状況・コンディション</h2>
+          
+          <div class="form-group">
+            <label>天気</label>
+            <div class="segmented-control">
+              <label><input type="radio" name="field-weather" value="晴れ" checked><span>晴れ</span></label>
+              <label><input type="radio" name="field-weather" value="曇り"><span>曇り</span></label>
+              <label><input type="radio" name="field-weather" value="雨"><span>雨</span></label>
+            </div>
+          </div>
+
+          <div class="form-group-row">
+            <div class="form-group">
+              <label for="field-tide">潮汐</label>
+              <select id="field-tide">
+                <option value="大潮">大潮</option>
+                <option value="中潮" selected>中潮</option>
+                <option value="小潮">小潮</option>
+                <option value="長潮">長潮</option>
+                <option value="若潮">若潮</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="field-range">ヒットレンジ (棚 / m)</label>
+              <input type="text" id="field-range" placeholder="例: 15-25m">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2><i class="fa-solid fa-toolbox header-icon"></i>タックル・ヒット仕掛けのメモ</h2>
+          
+          <div class="form-group">
+            <label for="field-rig-sutte">メタルスッテ (鉛スッテ)</label>
+            <input type="text" id="field-rig-sutte" placeholder="例: 四つ目 20号 赤緑">
+          </div>
+
+          <div class="form-group">
+            <label for="field-rig-dropper">ドロッパー (浮きスッテ/エギ)</label>
+            <input type="text" id="field-rig-dropper" placeholder="例: イージースリム 80mm 赤黄">
+          </div>
+
+          <div class="form-group">
+            <label for="field-memo">メモ・気づいたこと</label>
+            <textarea id="field-memo" rows="3" placeholder="潮の速さ、アタリカラー、誘いパターンなど..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="btn-form-cancel" class="btn btn-secondary">キャンセル</button>
+          <button type="submit" id="btn-form-submit" class="btn btn-primary">記録を保存</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Tab 3: History List -->
+    <section id="tab-history" class="tab-content">
+      <div class="history-header-actions">
+        <input type="search" id="history-search" placeholder="エリア・船名・メモで検索...">
+      </div>
+      <div id="history-list" class="history-list">
+        <!-- Javascript rendering -->
+        <div class="empty-state">
+          <i class="fa-solid fa-anchor"></i>
+          <p>釣行記録がありません。<br>「記録」タブから新しい釣果を登録しましょう！</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Navigation Tab Bar (iPhone Bottom Bar style) -->
+  <nav class="app-navbar">
+    <button class="nav-item active" data-tab="tab-dashboard">
+      <i class="fa-solid fa-chart-simple"></i>
+      <span>ダッシュボード</span>
+    </button>
+    <button class="nav-item" data-tab="tab-form" id="nav-btn-form">
+      <div class="center-add-icon">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+      <span>記録する</span>
+    </button>
+    <button class="nav-item" data-tab="tab-history">
+      <i class="fa-solid fa-list-ul"></i>
+      <span>釣行履歴</span>
+    </button>
+  </nav>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+</body>
+</html>
