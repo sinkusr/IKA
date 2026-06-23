@@ -19,6 +19,13 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
+// Skip waiting event via message
+self.addEventListener('message', (e) => {
+  if (e.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
+
 // Activate Event
 self.addEventListener('activate', (e) => {
   e.waitUntil(

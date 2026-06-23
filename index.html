@@ -26,8 +26,35 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('ServiceWorker registered', reg))
+          .then(reg => {
+            console.log('ServiceWorker registered', reg);
+            
+            // Check for updates on load
+            reg.addEventListener('updatefound', () => {
+              const installingWorker = reg.installing;
+              if (installingWorker) {
+                installingWorker.addEventListener('statechange', () => {
+                  if (installingWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                      // New content is available; force page reload to apply changes
+                      console.log('New content available, reloading...');
+                      window.location.reload();
+                    }
+                  }
+                });
+              }
+            });
+          })
           .catch(err => console.error('ServiceWorker registration failed', err));
+      });
+      
+      // Handle active service worker changes and reload
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
       });
     }
   </script>
