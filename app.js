@@ -652,43 +652,62 @@ document.addEventListener('DOMContentLoaded', () => {
     statusFetchWeather.textContent = '敦賀の気象データを取得中...';
     statusFetchWeather.style.color = 'var(--text-muted)';
 
+    // 1. Calculate Tide immediately (100% offline, failsafe)
+    let tideResult = '中潮';
     try {
-      // 1. Calculate Tide (Tsuruga Moon Age Tide - Off-line astronomical math)
-      const tideResult = calculateTideFromDate(dateVal);
+      tideResult = calculateTideFromDate(dateVal);
       fieldTide.value = tideResult;
+    } catch (e) {
+      console.error('Tide calc failed', e);
+    }
+
+    try {
+      // For iPhone/Safari compatibility, parse date carefully to avoid timezone/invalid date bugs
+      // split string to avoid Safari Date constructor bugs with YYYY-MM-DD
+      const dateParts = dateVal.split('-');
+      const inputYear = parseInt(dateParts[0]);
+      const inputMonth = parseInt(dateParts[1]) - 1;
+      const inputDay = parseInt(dateParts[2]);
       
-      // 2. Fetch Weather from Open-Meteo for Tsuruga (lat: 35.6517, lon: 136.0678)
+      const inputDate = new Date(inputYear, inputMonth, inputDay, 12, 0, 0); // Noon to avoid boundary errors
+      
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+
       const lat = 35.6517;
       const lon = 136.0678;
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateVal}&end_date=${dateVal}&hourly=weathercode,temperature_2m,windspeed_10m&timezone=Asia%2FTokyo`;
       
-      // If the date is today or in the future, we need the forecast API instead of the archive API
-      const inputDate = new Date(dateVal);
-      const today = new Date();
-      // Reset hours to compare dates only
-      today.setHours(0,0,0,0);
-      inputDate.setHours(0,0,0,0);
-
-      let fetchUrl = url;
+      // Determine if we need Archive API or Forecast API
+      let fetchUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateVal}&end_date=${dateVal}&hourly=weathercode,temperature_2m,windspeed_10m&timezone=Asia%2FTokyo`;
       if (inputDate >= today) {
         fetchUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=weathercode,temperature_2m,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=3`;
       }
 
-      const response = await fetch(fetchUrl);
-      if (!response.ok) throw new Error('API通信エラー');
+      // Add a small timeout (5 seconds) to fetch request to prevent hanging on Safari
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const response = await fetch(fetchUrl, { 
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error('API Server responded with code: ' + response.status);
       
       const data = await response.json();
       
-      if (data && data.hourly) {
-        // Ika Metal is evening/night fishing. We extract 20:00 (8:00 PM) values
-        const targetHour = 20; 
-        const timeIndex = data.hourly.time.findIndex(t => t.includes(`T${targetHour < 10 ? '0' + targetHour : targetHour}:00`)) || 12;
+      if (data && data.hourly && data.hourly.time) {
+        // Find 20:00 index
+        let timeIndex = data.hourly.time.findIndex(t => t.endsWith('T20:00') || t.includes('T20:00:00'));
+        if (timeIndex === -1) timeIndex = 20; // Fallback to index 20
         
-        const weatherCode = data.hourly.weathercode[timeIndex] || 0;
-        const temp = data.hourly.temperature_2m[timeIndex] || 20;
-        const wind = data.hourly.windspeed_10m[timeIndex] || 0;
+        const weatherCode = (data.hourly.weathercode && data.hourly.weathercode[timeIndex] !== undefined) ? data.hourly.weathercode[timeIndex] : 0;
+        const temp = (data.hourly.temperature_2m && data.hourly.temperature_2m[timeIndex] !== undefined) ? data.hourly.temperature_2m[timeIndex] : 22;
+        const wind = (data.hourly.windspeed_10m && data.hourly.windspeed_10m[timeIndex] !== undefined) ? data.hourly.windspeed_10m[timeIndex] : 5;
 
-        // Map WMO Weather Codes to Japanese basic terms (晴れ, 曇り, 雨)
+        // Map Weather
         let mappedWeather = '晴れ';
         if (weatherCode >= 2 && weatherCode <= 4) {
           mappedWeather = '曇り';
@@ -699,8 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weatherRadio = document.querySelector(`input[name="field-weather"][value="${mappedWeather}"]`);
         if (weatherRadio) weatherRadio.checked = true;
 
-        // Display results to user dynamically in status label and automatically prepending to memo
-        statusFetchWeather.textContent = `敦賀 取得成功: 潮汐=[${tideResult}], 天気=[${mappedWeather}], 気温=[${temp}℃], 風速=[${(wind * 0.27778).toFixed(1)} m/s]`;
+        statusFetchWeather.textContent = `敦賀 取得成功: 潮汐=[${tideResult}], 天気=[${mappedWeather}], 気温=[${temp}℃], 風=[${(wind * 0.27778).toFixed(1)}m/s]`;
         statusFetchWeather.style.color = 'var(--neon-green)';
 
         // Pre-fill notes nicely if empty
@@ -708,11 +726,12 @@ document.addEventListener('DOMContentLoaded', () => {
           fieldMemo.value = `【敦賀 気象】20-翌05時頃: 天候 ${mappedWeather} / 気温 約${temp}℃ / 風速 約${(wind * 0.27778).toFixed(1)}m/s。`;
         }
       } else {
-        statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (気象APIデータ未取得)`;
+        statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (気象APIデータ構造不一致)`;
       }
     } catch (err) {
-      console.error(err);
-      statusFetchWeather.textContent = `潮汐のみ算定: ${fieldTide.value} (オフラインまたはAPIエラーのため天気取得失敗)`;
+      console.error('Weather fetch error:', err);
+      // Give visual alert to see if Apple blocks the request (e.g. Mixed Content, CORS or network errors)
+      statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (天気取得エラー: ${err.message || err})`;
       statusFetchWeather.style.color = '#ffb300';
     }
   });
