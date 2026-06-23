@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ika-metal-log-v5';
+const CACHE_NAME = 'ika-metal-log-v6';
 const ASSETS = [
   'index.html',
   'style.css',
