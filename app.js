@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const fieldArea = document.getElementById('field-area');
   const countMaika = document.getElementById('count-maika');
   const countSurume = document.getElementById('count-surume');
+  const countYari = document.getElementById('count-yari');
+  const countAori = document.getElementById('count-aori');
   const fieldTide = document.getElementById('field-tide');
   const fieldRange = document.getElementById('field-range');
   const fieldRigSutte = document.getElementById('field-rig-sutte');
@@ -54,6 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const statTotalSquids = document.getElementById('stat-total-squids');
   const statTotalMaika = document.getElementById('stat-total-maika');
   const statTotalSurume = document.getElementById('stat-total-surume');
+  const statTotalYari = document.getElementById('stat-total-yari');
+  const statTotalAori = document.getElementById('stat-total-aori');
   const statPersonalBest = document.getElementById('stat-personal-best');
   const statAverageSquids = document.getElementById('stat-average-squids');
 
@@ -146,6 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
       statTotalSquids.innerHTML = `0 <span class="unit">杯</span>`;
       statTotalMaika.textContent = '0 杯';
       statTotalSurume.textContent = '0 杯';
+      statTotalYari.textContent = '0 杯';
+      statTotalAori.textContent = '0 杯';
       statPersonalBest.textContent = '0 杯';
       statAverageSquids.textContent = '0.0 杯';
       return;
@@ -153,25 +159,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let totalMaika = 0;
     let totalSurume = 0;
+    let totalYari = 0;
+    let totalAori = 0;
     let maxSingleLog = 0;
 
     fishingLogs.forEach(log => {
       const maika = parseInt(log.maika) || 0;
       const surume = parseInt(log.surume) || 0;
-      const sum = maika + surume;
+      const yari = parseInt(log.yari) || 0;
+      const aori = parseInt(log.aori) || 0;
+      const sum = maika + surume + yari + aori;
+      
       totalMaika += maika;
       totalSurume += surume;
+      totalYari += yari;
+      totalAori += aori;
+      
       if (sum > maxSingleLog) {
         maxSingleLog = sum;
       }
     });
 
-    const grandTotal = totalMaika + totalSurume;
+    const grandTotal = totalMaika + totalSurume + totalYari + totalAori;
     const average = grandTotal / fishingLogs.length;
 
     statTotalSquids.innerHTML = `${grandTotal} <span class="unit">杯</span>`;
     statTotalMaika.textContent = `${totalMaika} 杯`;
     statTotalSurume.textContent = `${totalSurume} 杯`;
+    statTotalYari.textContent = `${totalYari} 杯`;
+    statTotalAori.textContent = `${totalAori} 杯`;
     statPersonalBest.textContent = `${maxSingleLog} 杯`;
     statAverageSquids.textContent = `${average.toFixed(1)} 杯`;
   };
@@ -187,9 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Datasets
-    const maikaData = sortedChronological.map(log => log.maika);
-    const surumeData = sortedChronological.map(log => log.surume);
-    const totalData = sortedChronological.map(log => log.maika + log.surume);
+    const maikaData = sortedChronological.map(log => log.maika || 0);
+    const surumeData = sortedChronological.map(log => log.surume || 0);
+    const yariData = sortedChronological.map(log => log.yari || 0);
+    const aoriData = sortedChronological.map(log => log.aori || 0);
 
     // 1. Trend Line/Bar Chart
     const ctxTrend = document.getElementById('trendChart').getContext('2d');
@@ -206,14 +223,28 @@ document.addEventListener('DOMContentLoaded', () => {
             label: 'マイカ',
             data: maikaData,
             backgroundColor: '#ff1493',
-            borderRadius: 6,
+            borderRadius: 4,
             stack: 'Stack 0'
           },
           {
             label: 'スルメイカ',
             data: surumeData,
             backgroundColor: '#39ff14',
-            borderRadius: 6,
+            borderRadius: 4,
+            stack: 'Stack 0'
+          },
+          {
+            label: 'ヤリイカ',
+            data: yariData,
+            backgroundColor: '#00d2ff',
+            borderRadius: 4,
+            stack: 'Stack 0'
+          },
+          {
+            label: 'アオリイカ等',
+            data: aoriData,
+            backgroundColor: '#fffb14',
+            borderRadius: 4,
             stack: 'Stack 0'
           }
         ]
@@ -234,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: '#8fa0b5', font: { family: 'Outfit' }, stepSize: 10 }
+            ticks: { color: '#8fa0b5', font: { family: 'Outfit' } }
           }
         }
       }
@@ -248,14 +279,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let sumMaika = maikaData.reduce((a, b) => a + b, 0);
     let sumSurume = surumeData.reduce((a, b) => a + b, 0);
+    let sumYari = yariData.reduce((a, b) => a + b, 0);
+    let sumAori = aoriData.reduce((a, b) => a + b, 0);
+
+    const hasData = (sumMaika + sumSurume + sumYari + sumAori) > 0;
 
     ratioChartInstance = new Chart(ctxRatio, {
       type: 'doughnut',
       data: {
-        labels: ['マイカ', 'スルメイカ'],
+        labels: ['マイカ', 'スルメイカ', 'ヤリイカ', 'アオリイカ等'],
         datasets: [{
-          data: [sumMaika || 1, sumSurume], // default 1 to avoid empty chart display bug
-          backgroundColor: ['#ff1493', '#39ff14'],
+          data: hasData ? [sumMaika, sumSurume, sumYari, sumAori] : [1, 0, 0, 0],
+          backgroundColor: ['#ff1493', '#39ff14', '#00d2ff', '#fffb14'],
           borderColor: '#0e1626',
           borderWidth: 3
         }]
@@ -280,9 +315,12 @@ document.addEventListener('DOMContentLoaded', () => {
     fishingForm.reset();
     countMaika.value = 0;
     countSurume.value = 0;
+    countYari.value = 0;
+    countAori.value = 0;
     document.getElementById('btn-form-submit').textContent = '記録を保存';
     document.querySelector('input[name="field-weather"][value="晴れ"]').checked = true;
     fieldTide.value = '中潮';
+    statusFetchWeather.textContent = '';
   };
 
   const populateFormForEdit = (logId) => {
@@ -292,8 +330,10 @@ document.addEventListener('DOMContentLoaded', () => {
     editIdField.value = log.id;
     fieldDate.value = log.date;
     fieldArea.value = log.area;
-    countMaika.value = log.maika;
-    countSurume.value = log.surume;
+    countMaika.value = log.maika || 0;
+    countSurume.value = log.surume || 0;
+    countYari.value = log.yari || 0;
+    countAori.value = log.aori || 0;
     
     const weatherRadio = document.querySelector(`input[name="field-weather"][value="${log.weather}"]`);
     if (weatherRadio) weatherRadio.checked = true;
@@ -337,7 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const maikaCount = parseInt(log.maika) || 0;
       const surumeCount = parseInt(log.surume) || 0;
-      const grandTotal = maikaCount + surumeCount;
+      const yariCount = parseInt(log.yari) || 0;
+      const aoriCount = parseInt(log.aori) || 0;
+      const grandTotal = maikaCount + surumeCount + yariCount + aoriCount;
 
       card.innerHTML = `
         <div class="history-card-header">
@@ -348,9 +390,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="history-squid-total">${grandTotal} <span>杯</span></div>
         </div>
         <div class="history-body">
-          <div class="history-counters-summary">
+          <div class="history-counters-summary" style="flex-wrap: wrap; gap: 8px 12px;">
             <span class="counter-badge b-maika"><i class="fa-solid fa-circle"></i> マイカ: ${maikaCount}杯</span>
-            <span class="counter-badge b-surume"><i class="fa-solid fa-circle"></i> スルメイカ: ${surumeCount}杯</span>
+            <span class="counter-badge b-surume"><i class="fa-solid fa-circle"></i> スルメ: ${surumeCount}杯</span>
+            <span class="counter-badge b-yari" style="color: var(--primary);"><i class="fa-solid fa-circle"></i> ヤリ: ${yariCount}杯</span>
+            <span class="counter-badge b-aori" style="color: var(--neon-yellow);"><i class="fa-solid fa-circle"></i> アオリ等: ${aoriCount}杯</span>
           </div>
           <div class="history-details-grid">
             <div class="history-detail-item">
@@ -419,6 +463,8 @@ document.addEventListener('DOMContentLoaded', () => {
       area: fieldArea.value,
       maika: parseInt(countMaika.value) || 0,
       surume: parseInt(countSurume.value) || 0,
+      yari: parseInt(countYari.value) || 0,
+      aori: parseInt(countAori.value) || 0,
       weather: document.querySelector('input[name="field-weather"]:checked').value,
       tide: fieldTide.value,
       range: fieldRange.value,
@@ -451,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const headers = ['ID', '日付', '釣行エリア・船名', 'マイカ杯数', 'スルメイカ杯数', '天気', '潮汐', 'レンジ', 'メタルスッテ', 'ドロッパー', 'メモ'];
+    const headers = ['ID', '日付', '釣行エリア・船名', 'マイカ杯数', 'スルメイカ杯数', 'ヤリイカ杯数', 'アオリイカ杯数', '天気', '潮汐', 'レンジ', 'メタルスッテ', 'ドロッパー', 'メモ'];
     const csvRows = [headers.join(',')];
 
     fishingLogs.forEach(log => {
@@ -459,8 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
         log.id,
         log.date,
         `"${(log.area || '').replace(/"/g, '""')}"`,
-        log.maika,
-        log.surume,
+        log.maika || 0,
+        log.surume || 0,
+        log.yari || 0,
+        log.aori || 0,
         log.weather || '',
         log.tide || '',
         `"${(log.range || '').replace(/"/g, '""')}"`,
@@ -517,19 +565,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         parts.push(current);
 
-        if (parts.length >= 5) {
+        if (parts.length >= 7) {
           imported.push({
             id: parts[0] || 'log-' + Date.now() + '-' + i,
             date: parts[1],
             area: parts[2] ? parts[2].replace(/^"|"$/g, '') : '',
             maika: parseInt(parts[3]) || 0,
             surume: parseInt(parts[4]) || 0,
-            weather: parts[5] || '晴れ',
-            tide: parts[6] || '中潮',
-            range: parts[7] ? parts[7].replace(/^"|"$/g, '') : '',
-            rigSutte: parts[8] ? parts[8].replace(/^"|"$/g, '') : '',
-            rigDropper: parts[9] ? parts[9].replace(/^"|"$/g, '') : '',
-            memo: parts[10] ? parts[10].replace(/^"|"$/g, '') : ''
+            yari: parseInt(parts[5]) || 0,
+            aori: parseInt(parts[6]) || 0,
+            weather: parts[7] || '晴れ',
+            tide: parts[8] || '中潮',
+            range: parts[9] ? parts[9].replace(/^"|"$/g, '') : '',
+            rigSutte: parts[10] ? parts[10].replace(/^"|"$/g, '') : '',
+            rigDropper: parts[11] ? parts[11].replace(/^"|"$/g, '') : '',
+            memo: parts[12] ? parts[12].replace(/^"|"$/g, '') : ''
           });
         }
       }

@@ -210,7 +210,7 @@ body {
   font-size: 1.1rem;
 }
 
-.squid-kensaki {
+.squid-maika {
   background-color: rgba(255, 20, 147, 0.15);
   color: var(--neon-pink);
 }
@@ -220,14 +220,24 @@ body {
   color: var(--neon-green);
 }
 
-.stat-pb {
+.squid-yari {
+  background-color: rgba(0, 210, 255, 0.15);
+  color: var(--primary);
+}
+
+.squid-aori {
   background-color: rgba(255, 251, 20, 0.15);
   color: var(--neon-yellow);
 }
 
+.stat-pb {
+  background-color: rgba(0, 210, 255, 0.1);
+  color: #a855f7; /* Violet/PB color */
+}
+
 .stat-avg {
-  background-color: rgba(0, 212, 255, 0.15);
-  color: var(--primary);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
 }
 
 .stat-info {
@@ -300,6 +310,14 @@ body {
 
 .counter-card.surume {
   border-left: 4px solid var(--neon-green);
+}
+
+.counter-card.yari {
+  border-left: 4px solid var(--primary);
+}
+
+.counter-card.aori {
+  border-left: 4px solid var(--neon-yellow);
 }
 
 .counter-header h3 {
