@@ -21,48 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fishingLogs = [];
       }
     } else {
-      // Mock data for initial gorgeous feel
-      fishingLogs = [
-        {
-          id: 'mock-1',
-          date: '2026-06-15',
-          area: '敦賀・ビッグワン',
-          maika: 22,
-          surume: 5,
-          weather: '晴れ',
-          tide: '中潮',
-          range: '15-20m',
-          rigSutte: '四つ目 15号 赤黄',
-          rigDropper: 'おもりスッテ 赤緑',
-          memo: '月夜で棚が浅め。20mラインでアタリが頻発した。ドロッパーは赤黄への反応が特によかった。'
-        },
-        {
-          id: 'mock-2',
-          date: '2026-06-08',
-          area: '越前・泰丸',
-          maika: 12,
-          surume: 8,
-          weather: '曇り',
-          tide: '小潮',
-          range: '25-35m',
-          rigSutte: 'TGスッテ 20号 赤緑',
-          rigDropper: 'イージースリム 赤ピンク',
-          memo: 'うねりが少しあり。棚がバラけて絞りづらかったが、ボトム付近のスローな誘いでスルメイカが混じった。'
-        },
-        {
-          id: 'mock-3',
-          date: '2026-05-25',
-          area: '小浜・佐藤丸',
-          maika: 31,
-          surume: 2,
-          weather: '晴れ',
-          tide: '大潮',
-          range: '10-15m',
-          rigSutte: 'メタラー 12号 赤白',
-          rigDropper: 'スッテ 赤緑',
-          memo: '大爆釣！集魚灯が効き始めてから15m付近で入れ乗り状態。軽い仕掛けが有利だった。'
-        }
-      ];
+      // Clean slate - start with no mock data
+      fishingLogs = [];
       saveLogs();
     }
   };
@@ -603,8 +563,139 @@ document.addEventListener('DOMContentLoaded', () => {
   triggerImport.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', importFromCSV);
 
+  // --- Weather & Tide Auto Fetch Logic ---
+  const btnFetchWeather = document.getElementById('btn-fetch-weather');
+  const statusFetchWeather = document.getElementById('weather-fetch-status');
+
+  // Simple Area to Lat/Lon mapping (defaulting to Hokuriku/Sea of Japan areas where Ika Metal is famous)
+  const getCoordinates = (areaName) => {
+    const area = (areaName || '').toLowerCase();
+    if (area.includes('小浜')) return { lat: 35.5036, lon: 135.7481, name: '小浜' };
+    if (area.includes('敦賀')) return { lat: 35.6517, lon: 136.0678, name: '敦賀' };
+    if (area.includes('越前') || area.includes('左右') || area.includes('厨')) return { lat: 35.9739, lon: 135.9789, name: '越前' };
+    if (area.includes('三国')) return { lat: 36.2167, lon: 136.1333, name: '三国' };
+    if (area.includes('香住') || area.includes('柴山')) return { lat: 35.6384, lon: 134.6294, name: '香住' };
+    if (area.includes('津居山') || area.includes('城崎')) return { lat: 35.6394, lon: 134.8193, name: '但馬' };
+    if (area.includes('境港') || area.includes('美保関')) return { lat: 35.5488, lon: 133.2307, name: '境港' };
+    if (area.includes('宮津') || area.includes('舞鶴')) return { lat: 35.5398, lon: 135.1952, name: '丹後' };
+    if (area.includes('能登') || area.includes('石川')) return { lat: 37.1408, lon: 137.0503, name: '能登' };
+    // Default to Tsuruga (highly active Ika Metal center) if unknown
+    return { lat: 35.6517, lon: 136.0678, name: '敦賀（デフォルト）' };
+  };
+
+  // Astronomical Moon Phase estimation to calculate Tide (Oshio, Chushio, etc.)
+  const calculateTideFromDate = (dateString) => {
+    const date = new Date(dateString);
+    // Reference New Moon: 2000-01-07 (Moon Age = 0)
+    const refDate = new Date('2000-01-07T18:14:00Z');
+    const diffMs = date.getTime() - refDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    
+    // Moon cycle is ~29.53059 days
+    const moonAge = (diffDays % 29.53059 + 29.53059) % 29.53059;
+
+    // Map moon age to Japanese traditional tides
+    // 大潮: 0-2 (新月), 14-17 (満月), 29-30
+    // 中潮: 3-6, 11-13, 18-21, 26-28
+    // 小潮: 7-9, 22-24
+    // 長潮: 10, 25
+    // 若潮: 11, 26
+    const age = Math.round(moonAge);
+    
+    if (age <= 2 || (age >= 14 && age <= 17) || age >= 29) {
+      return '大潮';
+    } else if ((age >= 3 && age <= 6) || (age >= 12 && age <= 13) || (age >= 18 && age <= 21) || (age >= 27 && age <= 28)) {
+      return '中潮';
+    } else if ((age >= 7 && age <= 9) || (age >= 22 && age <= 24)) {
+      return '小潮';
+    } else if (age === 10 || age === 25) {
+      return '長潮';
+    } else { // age === 11 || age === 26
+      return '若潮';
+    }
+  };
+
+  btnFetchWeather.addEventListener('click', async () => {
+    const dateVal = fieldDate.value;
+    const areaVal = fieldArea.value;
+
+    if (!dateVal) {
+      statusFetchWeather.textContent = '先に日付を入力してください。';
+      statusFetchWeather.style.color = '#ff5e62';
+      return;
+    }
+
+    statusFetchWeather.textContent = '気象データを取得中...';
+    statusFetchWeather.style.color = 'var(--text-muted)';
+
+    try {
+      // 1. Calculate Tide (Off-line astronomical math, very robust!)
+      const tideResult = calculateTideFromDate(dateVal);
+      fieldTide.value = tideResult;
+      
+      // 2. Fetch Weather from Open-Meteo
+      const coord = getCoordinates(areaVal);
+      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${coord.lat}&longitude=${coord.lon}&start_date=${dateVal}&end_date=${dateVal}&hourly=weathercode,temperature_2m,windspeed_10m&timezone=Asia%2FTokyo`;
+      
+      // If the date is today or in the future, we need the forecast API instead of the archive API
+      const inputDate = new Date(dateVal);
+      const today = new Date();
+      // Reset hours to compare dates only
+      today.setHours(0,0,0,0);
+      inputDate.setHours(0,0,0,0);
+
+      let fetchUrl = url;
+      if (inputDate >= today) {
+        fetchUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coord.lat}&longitude=${coord.lon}&hourly=weathercode,temperature_2m,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=3`;
+      }
+
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error('API通信エラー');
+      
+      const data = await response.json();
+      
+      if (data && data.hourly) {
+        // Ika Metal is evening/night fishing. We extract 20:00 (8:00 PM) values
+        const targetHour = 20; 
+        const timeIndex = data.hourly.time.findIndex(t => t.includes(`T${targetHour < 10 ? '0' + targetHour : targetHour}:00`)) || 12;
+        
+        const weatherCode = data.hourly.weathercode[timeIndex] || 0;
+        const temp = data.hourly.temperature_2m[timeIndex] || 20;
+        const wind = data.hourly.windspeed_10m[timeIndex] || 0;
+
+        // Map WMO Weather Codes to Japanese basic terms (晴れ, 曇り, 雨)
+        // 0-1: 晴れ, 2-3: 曇り, 51-67, 80-82: 雨/小雨, 71-77, 85-86: 雪
+        let mappedWeather = '晴れ';
+        if (weatherCode >= 2 && weatherCode <= 4) {
+          mappedWeather = '曇り';
+        } else if (weatherCode >= 50) {
+          mappedWeather = '雨';
+        }
+
+        const weatherRadio = document.querySelector(`input[name="field-weather"][value="${mappedWeather}"]`);
+        if (weatherRadio) weatherRadio.checked = true;
+
+        // Display results to user dynamically in status label and automatically prepending to memo
+        statusFetchWeather.textContent = `取得成功 (${coord.name}付近): 潮汐=[${tideResult}], 天気=[${mappedWeather}], 気温=[${temp}℃], 風速=[${(wind * 0.27778).toFixed(1)} m/s]`;
+        statusFetchWeather.style.color = 'var(--neon-green)';
+
+        // Pre-fill notes nicely if empty
+        if (!fieldMemo.value) {
+          fieldMemo.value = `【気象状況】19-23時頃: 天候 ${mappedWeather} / 気温 約${temp}℃ / 風速 約${(wind * 0.27778).toFixed(1)}m/s。`;
+        }
+      } else {
+        statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (気象APIデータ未取得)`;
+      }
+    } catch (err) {
+      console.error(err);
+      statusFetchWeather.textContent = `潮汐のみ算定: ${fieldTide.value} (オフラインまたはAPIエラーのため天気取得失敗)`;
+      statusFetchWeather.style.color = '#ffb300';
+    }
+  });
+
   // --- Initial Render ---
   loadLogs();
   renderStats();
   renderCharts();
 });
+
