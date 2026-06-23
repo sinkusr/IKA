@@ -80,7 +80,7 @@
         <div class="stat-card">
           <div class="stat-icon squid-aori"><i class="fa-solid fa-circle"></i></div>
           <div class="stat-info">
-            <span class="label">アオリイカ等</span>
+            <span class="label">その他</span>
             <span class="value" id="stat-total-aori">0 杯</span>
           </div>
         </div>
@@ -133,12 +133,12 @@
               <input type="date" id="field-date" required>
             </div>
             <div class="form-group">
-              <label for="field-area">釣行エリア / 船名</label>
-              <input type="text" id="field-area" placeholder="例: 敦賀・小浜" required>
+              <label for="field-area">船名</label>
+              <input type="text" id="field-area" placeholder="例: 豊丸" required>
             </div>
           </div>
           <div class="form-group" style="margin-top: 10px;">
-            <button type="button" id="btn-fetch-weather" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem;"><i class="fa-solid fa-cloud-sun"></i> 日付から天気・潮汐を自動取得</button>
+            <button type="button" id="btn-fetch-weather" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem;"><i class="fa-solid fa-cloud-sun"></i> 敦賀の天気・潮汐を自動取得</button>
             <span id="weather-fetch-status" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 6px;"></span>
           </div>
         </div>
@@ -189,8 +189,8 @@
             <!-- Counter 4 -->
             <div class="counter-card aori">
               <div class="counter-header">
-                <h3>アオリイカ / その他</h3>
-                <span class="sub-label">オモリグでの外道・コウイカ等</span>
+                <h3>その他</h3>
+                <span class="sub-label">アジや外道、その他のイカ等</span>
               </div>
               <div class="counter-controls">
                 <button type="button" class="btn-counter-minus" data-target="count-aori"><i class="fa-solid fa-minus"></i></button>
