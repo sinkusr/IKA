@@ -10,24 +10,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load from LocalStorage
   const loadLogs = () => {
-    const rawData = localStorage.getItem('ika_metal_logs');
-    if (rawData) {
-      try {
-        fishingLogs = JSON.parse(rawData);
-        // Sort by date descending
-        fishingLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-      } catch (e) {
-        console.error('Error parsing fishing logs', e);
-        fishingLogs = [];
+    try {
+      const rawData = localStorage.getItem('ika_metal_logs');
+      if (rawData) {
+        const parsed = JSON.parse(rawData);
+        if (Array.isArray(parsed)) {
+          // Map to ensure any legacy structure doesn't break
+          fishingLogs = parsed.map(log => ({
+            id: log.id || 'log-' + Math.random().toString(36).substr(2, 9),
+            date: log.date || new Date().toISOString().split('T')[0],
+            area: log.area || log.ship || '', // handle ship name field mapping
+            maika: parseInt(log.maika) || 0,
+            surume: parseInt(log.surume) || 0,
+            yari: parseInt(log.yari) || 0,
+            aori: parseInt(log.aori) || 0, // 'aori' key maps to 'others' count in UI
+            weather: log.weather || '晴れ',
+            tide: log.tide || '中潮',
+            range: log.range || '',
+            rigSutte: log.rigSutte || '',
+            rigDropper: log.rigDropper || '',
+            memo: log.memo || ''
+          }));
+          // Sort by date descending
+          fishingLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+          return; // Successful load
+        }
       }
-    } else {
-      // Clean slate - start with no mock data
+    } catch (e) {
+      console.error('Error loading fishing logs from LocalStorage:', e);
+    }
+    
+    // Failsafe: only overwrite if local storage was completely empty, otherwise keep state
+    if (localStorage.getItem('ika_metal_logs') === null) {
       fishingLogs = [];
       saveLogs();
     }
   };
 
   const saveLogs = () => {
+    // Failsafe: never save undefined or null
+    if (!fishingLogs) return;
     localStorage.setItem('ika_metal_logs', JSON.stringify(fishingLogs));
   };
 
