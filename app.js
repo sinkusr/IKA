@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  btnFetchWeather.addEventListener('click', async () => {
+  const handleFetchWeather = async () => {
     const dateVal = fieldDate.value;
 
     if (!dateVal) {
@@ -734,7 +734,20 @@ document.addEventListener('DOMContentLoaded', () => {
       statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (天気取得エラー: ${err.message || err})`;
       statusFetchWeather.style.color = '#ffb300';
     }
+  };
+
+  // Add click and touchstart event listeners for iOS Safari double-binding compatibility
+  btnFetchWeather.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleFetchWeather();
   });
+  
+  btnFetchWeather.addEventListener('touchstart', (e) => {
+    // Only trigger touchstart logic if we want to bypass 300ms click delay
+    // Prevent default to avoid double fire
+    e.preventDefault();
+    handleFetchWeather();
+  }, { passive: false });
 
   // --- Initial Render ---
   loadLogs();

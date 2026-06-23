@@ -84,6 +84,18 @@ body {
   color: var(--primary);
 }
 
+.version-badge {
+  font-size: 0.65rem;
+  background-color: rgba(0, 210, 255, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-left: 4px;
+  text-shadow: 0 0 4px var(--primary-glow);
+}
+
 .neon-icon {
   color: var(--neon-green);
   text-shadow: 0 0 8px var(--neon-green);
