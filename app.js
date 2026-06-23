@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stack: 'Stack 0'
           },
           {
-            label: 'アオリイカ等',
+            label: 'その他',
             data: aoriData,
             backgroundColor: '#fffb14',
             borderRadius: 4,
@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ratioChartInstance = new Chart(ctxRatio, {
       type: 'doughnut',
       data: {
-        labels: ['マイカ', 'スルメイカ', 'ヤリイカ', 'アオリイカ等'],
+        labels: ['マイカ', 'スルメイカ', 'ヤリイカ', 'その他'],
         datasets: [{
           data: hasData ? [sumMaika, sumSurume, sumYari, sumAori] : [1, 0, 0, 0],
           backgroundColor: ['#ff1493', '#39ff14', '#00d2ff', '#fffb14'],
@@ -705,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Pre-fill notes nicely if empty
         if (!fieldMemo.value) {
-          fieldMemo.value = `【敦賀 気象】19-23時頃: 天候 ${mappedWeather} / 気温 約${temp}℃ / 風速 約${(wind * 0.27778).toFixed(1)}m/s。`;
+          fieldMemo.value = `【敦賀 気象】20-翌05時頃: 天候 ${mappedWeather} / 気温 約${temp}℃ / 風速 約${(wind * 0.27778).toFixed(1)}m/s。`;
         }
       } else {
         statusFetchWeather.textContent = `潮汐のみ算定: ${tideResult} (気象APIデータ未取得)`;
