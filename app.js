@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxDim = 600;
+        const maxDim = 400; // Reduced from 600 to fit local storage limit
         let w = img.width;
         let h = img.height;
         
@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
         
-        currentPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        currentPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.4); // Downscale quality to 40%
         photoPreview.src = currentPhotoDataUrl;
         photoPreviewContainer.style.display = 'block';
       };
@@ -583,10 +583,19 @@ document.addEventListener('DOMContentLoaded', () => {
       fishingLogs.push(newLog);
     }
 
-    saveLogs();
-    resetForm();
-    switchTab('tab-dashboard');
-    triggerHapticFeedback();
+    try {
+      saveLogs();
+      resetForm();
+      switchTab('tab-dashboard');
+      triggerHapticFeedback();
+    } catch (err) {
+      if (err.name === 'QuotaExceededError' || err.code === 22) {
+        alert('エラー: 保存容量の上限に達しました。写真サイズを小さくするか、過去の古い写真を削除してください。');
+      } else {
+        alert('エラー: データの保存に失敗しました。');
+      }
+      console.error(err);
+    }
   });
 
   // --- CSV Export / Import ---
